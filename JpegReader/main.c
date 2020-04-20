@@ -60,7 +60,7 @@ int main(int argc, char* args[]) {
 		putchar('\n');
 	}
 	
-
+	uint8_t new_dqt_table = array_to_zigzag_order(dqt_table, DQT_LENGTH); // :thinking:
 
 	return 0;
 }

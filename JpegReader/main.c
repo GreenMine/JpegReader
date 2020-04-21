@@ -4,6 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "decoder.h"
+#include "helper.h"
 
 #define ONE_BITE 0
 #define TWO_BITE 1
@@ -20,6 +21,7 @@ int main(int argc, char* args[]) {
 	
 	FILE* fp;
 	
+
 	if ((fp = fopen(args[1], "rb")) == NULL) {
 		printf("Error to open file %s\n", args[1]);
 		return 1;
@@ -27,6 +29,9 @@ int main(int argc, char* args[]) {
 
 	//printf("%X:%X\n", fgetc(fp), fgetc(fp));
 	chack_marker(fp, 0xD8); // CHECKING EXISTENCE OF START MARKER
+
+
+
 
 	chack_marker(fp, 0xFE); // CHECKING EXISTENCE OF COMMENT MARKER
 
@@ -51,16 +56,18 @@ int main(int argc, char* args[]) {
 
 	uint8_t dqt_table[DQT_LENGTH][DQT_LENGTH]; // NEED DELETE CONST BTW
 
-	printf("Standart dqt table:\n");
-	for (int i = 0; i < DQT_LENGTH; i++) {
-		for (int j = 0; j < DQT_LENGTH; j++) {
+	for (int i = 0; i < DQT_LENGTH; i++) 
+		for (int j = 0; j < DQT_LENGTH; j++) 
 			dqt_table[i][j] = fgetc(fp);
-			printf("%02X ", dqt_table[i][j]);
-		}
-		putchar('\n');
-	}
 	
-	uint8_t new_dqt_table = array_to_zigzag_order(dqt_table, DQT_LENGTH); // :thinking:
+	printf("Standart dqt table:\n");
+	//printf("%03x\n", dqt_table[2][3]);
+	print_table(dqt_table, DQT_LENGTH);
+
+	uint8_t *new_dqt_table = array_to_zigzag_order(dqt_table, 8); // :thinking:
+
+	printf("ZigZag ordering table:\n");
+	print_table(new_dqt_table, 8);
 
 	return 0;
 }

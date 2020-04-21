@@ -23,5 +23,8 @@
     <ClInclude Include="decoder.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="helper.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

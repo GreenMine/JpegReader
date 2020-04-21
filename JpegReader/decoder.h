@@ -3,6 +3,13 @@
 #define UP_DIAG 3
 #define DOWN_DIAG 4
 
+typedef struct Sof0_Channel {
+	uint8_t id;
+	uint8_t horizontal_thinning;
+	uint8_t vertical_thinning;
+	uint8_t table_id;
+} sof0_channel_t;
+
 uint8_t *array_to_zigzag_order(uint8_t input_array[], int length) {
 	int i = 0, j = 0, movement;
 	uint8_t* returned_array = malloc(sizeof(uint8_t) * length * length);

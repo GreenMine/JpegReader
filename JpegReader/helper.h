@@ -35,5 +35,5 @@ typedef enum HalfOfByte {
 
 
 uint8_t get_half_of_byte(uint8_t value, half_of_byte_t type) {
-	return type == First ? value & 0xF : value & 0x0F;
+	return type == First ? value >> 4 & 0xF : value & 0xF;
 }

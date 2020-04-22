@@ -5,8 +5,9 @@
 #include <stdint.h>
 #include "decoder.h"
 #include "helper.h"
+#include "avl.h"
 
-#define MARKER_COUNT 3
+#define MARKER_COUNT 4
 
 
 #define ONE_BITE 0
@@ -14,9 +15,12 @@
 
 #define DQT_LENGTH 8
 
+#define HUFFMAN_CODE_LENGTH 16
+
 int comment_marker();
 int dqt_marker();
 int sof0_marker();
+int huffman_marker();
 
 short get_next_2_bytes(FILE* file);
 
@@ -33,7 +37,7 @@ int main(int argc, char* args[]) {
 		const char* name;
 		int(*f)();
 	} markers[MARKER_COUNT] = {
-		{0xFE, "COMMENT", comment_marker}, {0xDB, "DQT", dqt_marker}, {0xC0, "SOF0", sof0_marker}
+		{0xFE, "COMMENT", comment_marker}, {0xDB, "DQT", dqt_marker}, {0xC0, "SOF0", sof0_marker}, {0xC4, "TABLE OF HUFFMAN", huffman_marker}
 	};
 
 	if ((fp = fopen(args[1], "rb")) == NULL) {
@@ -88,8 +92,8 @@ int dqt_marker() {
 
 	uint16_t dqt_length = get_next_2_bytes(fp) - 3;
 	uint8_t temp_value = fgetc(fp);
-	uint8_t length_value_in_table = temp_value / 0x10;
-	uint8_t table_id = temp_value & 0x01;
+	uint8_t length_value_in_table = get_half_of_byte(temp_value, First);
+	uint8_t table_id = get_half_of_byte(temp_value, Second);
 
 	printf("Length of table: %d\nLength of value in table = %d\nTable id = %d\n", dqt_length, length_value_in_table, table_id);
 
@@ -126,11 +130,34 @@ int sof0_marker() {
 	for (int i = 0; i < count_of_channels; i++) {
 		uint8_t id = fgetc(fp);
 		uint8_t thinning = fgetc(fp);
-		channels[i].id = id;
-		channels[i].horizontal_thinning = get_half_of_byte(thinning, First);
-		channels[i].vertical_thinning = get_half_of_byte(thinning, Second);
-		channels[i].table_id = fgetc(fp);
+		channels[i] = (sof0_channel_t){ .id = id, .horizontal_thinning = get_half_of_byte(thinning, First), .vertical_thinning = get_half_of_byte(thinning, Second), .table_id = fgetc(fp) };
 		print_channel(channels[i]);
 	}
+	return 0;
+}
 
+int huffman_marker() {
+
+	uint16_t marker_length = get_next_2_bytes(fp);
+	uint8_t temp_for_1_byte = fgetc(fp);
+	uint8_t class = get_half_of_byte(temp_for_1_byte, First);
+	uint8_t table_id = get_half_of_byte(temp_for_1_byte, Second);
+	uint16_t codes_length = marker_length - 3 - HUFFMAN_CODE_LENGTH;
+
+	printf("Length: %d\nClass: %s coefficients\nTable id: %d\nCount of Huffman codes: %d\n", marker_length, class == 0 ? "DC" : "AC", table_id, codes_length);
+
+	huffman_code_t codes[HUFFMAN_CODE_LENGTH];
+
+	for (int i = 0; i < codes_length; i++) 
+		codes[i] = (huffman_code_t){ .length = i + 1, .count = fgetc(fp) };
+	
+	fseek(fp, HUFFMAN_CODE_LENGTH - codes_length, SEEK_CUR);
+
+	printf("CODES(%d):\n", codes_length);
+	for (int i = 0; i < codes_length; i++) {
+		codes[i].value = fgetc(fp);
+		printf("Length: %d\nCount: %d\nValue: %d\n---------\n", codes[i].length, codes[i].count, codes[i].value);
+	}
+
+	return 0;
 }

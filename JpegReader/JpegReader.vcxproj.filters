@@ -26,5 +26,8 @@
     <ClInclude Include="helper.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
+    <ClInclude Include="avl.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

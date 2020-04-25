@@ -13,6 +13,7 @@ typedef struct Sof0_Channel {
 typedef struct HuffmanCode {
 	uint8_t length;
 	uint8_t count;
+	uint16_t code;
 	uint8_t value;
 } huffman_code_t;
 

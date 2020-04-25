@@ -6,8 +6,9 @@
 #include "decoder.h"
 #include "helper.h"
 #include "avl.h"
+#include "type.h"
 
-#define MARKER_COUNT 4
+#define MARKER_COUNT 6
 
 
 #define ONE_BITE 0
@@ -21,6 +22,7 @@ int comment_marker();
 int dqt_marker();
 int sof0_marker();
 int huffman_marker();
+int app_marker();
 
 short get_next_2_bytes(FILE* file);
 
@@ -28,16 +30,28 @@ void chack_marker(FILE* file, int second);
 
 FILE* fp;
 
+int main2() {
+
+
+	avl_tree_t* tree = create_element();
+
+	add_value(tree, (huffman_code_t){ 1, 1, 3 });
+	add_value(tree, (huffman_code_t){ 2, 1, 2 });
+
+
+	return 0;
+}
+
 int main(int argc, char* args[]) {
 	if (argc == 1)
 		return 1;
 	
 	struct {
-		uint8_t type;
+		type_between_t type;
 		const char* name;
 		int(*f)();
 	} markers[MARKER_COUNT] = {
-		{0xFE, "COMMENT", comment_marker}, {0xDB, "DQT", dqt_marker}, {0xC0, "SOF0", sof0_marker}, {0xC4, "TABLE OF HUFFMAN", huffman_marker}
+		{new_value(0xFE), "COMMENT", comment_marker}, {new_value(0xDB), "DQT", dqt_marker}, {new_value(0xC0), "SOF0", sof0_marker}, {new_value(0xC4), "TABLE OF HUFFMAN", huffman_marker}, {new_two_value(0xE0, 0xEF), "APP", app_marker}
 	};
 
 	if ((fp = fopen(args[1], "rb")) == NULL) {
@@ -56,10 +70,11 @@ int main(int argc, char* args[]) {
 			return 1;
 		}
 	
-		int current_marker = fgetc(fp);
-		int is_found = false;
+		uint16_t current_marker = fgetc(fp);
+		bool is_found = false;
+		
 		for (int i = 0; i < MARKER_COUNT; i++) {
-			if (current_marker == markers[i].type) {
+			if (is_equals(current_marker, markers[i].type)) {
 				printf("Marker %s was found! Executing...\n", markers[i].name);
 				markers[i].f();
 				is_found = true;
@@ -75,7 +90,6 @@ int main(int argc, char* args[]) {
 }
 
 int comment_marker() {
-
 	uint16_t comment_length = get_next_2_bytes(fp) - 2; // GET LENGTH OF COMMENT
 
 	/*PRINT COMMENT*/
@@ -89,7 +103,6 @@ int comment_marker() {
 }
 
 int dqt_marker() {
-
 	uint16_t dqt_length = get_next_2_bytes(fp) - 3;
 	uint8_t temp_value = fgetc(fp);
 	uint8_t length_value_in_table = get_half_of_byte(temp_value, First);
@@ -116,7 +129,6 @@ int dqt_marker() {
 }
 
 int sof0_marker() {
-
 	uint16_t marker_length = get_next_2_bytes(fp);
 	uint8_t precision = fgetc(fp);
 	uint16_t heigth = get_next_2_bytes(fp);
@@ -138,6 +150,26 @@ int sof0_marker() {
 
 int huffman_marker() {
 
+
+	//printf("Length: %d\nClass: %s coefficients\nTable id: %d\nCount of Huffman codes: %d\n", marker_length, class == 0 ? "DC" : "AC", table_id, codes_length);
+
+	//huffman_code_t codes[HUFFMAN_CODE_LENGTH];
+
+	//for (int i = 0; i < codes_length; i++) 
+	//	codes[i] = (huffman_code_t){ .length = i + 1, .count = fgetc(fp) };
+	//
+	//fseek(fp, HUFFMAN_CODE_LENGTH - codes_length, SEEK_CUR);
+	//avl_tree_t* tree = create_element();
+
+	//printf("CODES(%d):\n", codes_length);
+	//for (int i = 0; i < codes_length; i++) {
+	//	codes[i].value = fgetc(fp);
+	//	add_value(tree, codes[i]);
+	//	printf("Length: %d\nCount: %d\nValue: %d\n---------\n", codes[i].length, codes[i].count, codes[i].value);
+	//}
+
+	//print2D(tree, 0);
+
 	uint16_t marker_length = get_next_2_bytes(fp);
 	uint8_t temp_for_1_byte = fgetc(fp);
 	uint8_t class = get_half_of_byte(temp_for_1_byte, First);
@@ -146,18 +178,39 @@ int huffman_marker() {
 
 	printf("Length: %d\nClass: %s coefficients\nTable id: %d\nCount of Huffman codes: %d\n", marker_length, class == 0 ? "DC" : "AC", table_id, codes_length);
 
-	huffman_code_t codes[HUFFMAN_CODE_LENGTH];
+	int i;
 
-	for (int i = 0; i < codes_length; i++) 
+	uint16_t code = 0;
+
+	huffman_code_t codes[HUFFMAN_CODE_LENGTH] = {0x00};
+
+	for (i = 0; i < codes_length; i++) 
 		codes[i] = (huffman_code_t){ .length = i + 1, .count = fgetc(fp) };
-	
+
 	fseek(fp, HUFFMAN_CODE_LENGTH - codes_length, SEEK_CUR);
 
-	printf("CODES(%d):\n", codes_length);
-	for (int i = 0; i < codes_length; i++) {
-		codes[i].value = fgetc(fp);
-		printf("Length: %d\nCount: %d\nValue: %d\n---------\n", codes[i].length, codes[i].count, codes[i].value);
+	for (i = 0; i < codes_length; i++) {
+		for (int j = 0; j < codes[i].count; j++) {
+			codes[i].value = fgetc(fp);
+			codes[i].code = code;
+			print_huffman(codes[i]);
+			code++;
+		}
+		code <<= 1;
 	}
 
+	return 0;
+}
+
+int app_marker() {
+	uint16_t marker_length = get_next_2_bytes(fp) - 2;
+
+	printf("Information about packager application(%d):\n");
+
+	for (int i = 1; i <= marker_length; i++) {
+		printf("%02X ", fgetc(fp));
+		if (!(i % 16)) putchar('\n');
+	}
+	putchar('\n');
 	return 0;
 }

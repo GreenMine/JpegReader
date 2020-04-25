@@ -1,6 +1,5 @@
 #pragma once
 
-
 void print_table(uint8_t input_array[], size_t length) {
 	for (int i = 0; i < length; i++) {
 		putchar('[');
@@ -24,8 +23,19 @@ void chack_marker(FILE* file, int second) {
 	}
 }
 
+void print_binary(uint16_t code) {
+	for (int i = 4; i >= 0; i--) 
+		putchar(code & (1 << i) ? '1' : '0');
+}
+
 void print_channel(sof0_channel_t channel) {
 	printf("Id: %d\nHorizontal thinning: %d\nVertical thinning: %d\nDqt table id: %d\n", channel.id, channel.vertical_thinning, channel.horizontal_thinning, channel.table_id);
+}
+
+void print_huffman(huffman_code_t huffman) {
+	printf("Length: %d\nCount: %d\nValue: %d\nCode: %d(", huffman.length, huffman.count, huffman.value, huffman.code);
+	print_binary(huffman.code);
+	printf(")\n---------\n");
 }
 
 typedef enum HalfOfByte {

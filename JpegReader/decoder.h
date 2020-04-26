@@ -10,12 +10,6 @@ typedef struct Sof0_Channel {
 	uint8_t table_id;
 } sof0_channel_t;
 
-typedef struct HuffmanCode {
-	uint8_t length;
-	uint8_t count;
-	uint16_t code;
-	uint8_t value;
-} huffman_code_t;
 
 uint8_t *array_to_zigzag_order(uint8_t input_array[], int length) {
 	int i = 0, j = 0, movement;

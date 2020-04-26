@@ -26,13 +26,16 @@
     <ClInclude Include="helper.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
-    <ClInclude Include="avl.h">
-      <Filter>Исходные файлы</Filter>
-    </ClInclude>
     <ClInclude Include="type.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
     <ClInclude Include="hex.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="bitstream.h">
+      <Filter>Исходные файлы</Filter>
+    </ClInclude>
+    <ClInclude Include="huffman.h">
       <Filter>Исходные файлы</Filter>
     </ClInclude>
   </ItemGroup>

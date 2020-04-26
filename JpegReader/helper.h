@@ -1,4 +1,5 @@
 #pragma once
+#include <math.h>
 
 void print_table(uint8_t input_array[], size_t length) {
 	for (int i = 0; i < length; i++) {
@@ -24,7 +25,8 @@ void chack_marker(FILE* file, int second) {
 }
 
 void print_binary(uint16_t code) {
-	for (int i = 4; i >= 0; i--) 
+	//printf("(L: %d)", length);
+	for (int16_t i = log2(code); i >= 0; i--)
 		putchar(code & (1 << i) ? '1' : '0');
 }
 

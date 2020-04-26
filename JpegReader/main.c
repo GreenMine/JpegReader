@@ -3,13 +3,14 @@
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
+#include <windows.h>
 #include "decoder.h"
 #include "helper.h"
-#include "avl.h"
+#include "huffman.h"
 #include "type.h"
+#include "bitstream.h"
 
 #define MARKER_COUNT 6
-
 
 #define ONE_BITE 0
 #define TWO_BITE 1
@@ -30,14 +31,49 @@ void chack_marker(FILE* file, int second);
 
 FILE* fp;
 
-int main2() {
+double PCFreq;
+
+LONGLONG CounterStart;
+
+void StartCounter()
+{
+	LARGE_INTEGER li;
+	if (!QueryPerformanceFrequency(&li))
+		printf("Error\n");
+
+	PCFreq = ((double)li.QuadPart) / 1000.0;
+
+	QueryPerformanceCounter(&li);
+	CounterStart = li.QuadPart;
+}
+double GetCounter()
+{
+	LARGE_INTEGER li;
+	QueryPerformanceCounter(&li);
+	return ((double)(li.QuadPart - CounterStart)) / PCFreq;
+}
+
+int main2(int argc, char* args[]) {
 
 
 	avl_tree_t* tree = create_element();
 
-	add_value(tree, (huffman_code_t){ 1, 1, 3 });
-	add_value(tree, (huffman_code_t){ 2, 1, 2 });
+	add_value(tree, (huffman_code_t){ 1, 1, 0, 03 });
+	putchar('\n');
+	add_value(tree, (huffman_code_t){ 2, 1, 2, 02 });
 
+	print2D(tree, 0);
+
+	if ((fp = fopen(args[1], "rb")) == NULL) {
+		printf("Error to open file %s\n", args[1]);
+		return 1;
+	}
+
+	bitstream_t* stream = bitstream_initialize(fp);
+
+	for (int i = 0; i < 256; i++) {
+		printf("%d", get_next_bit(stream));
+	}
 
 	return 0;
 }
@@ -58,7 +94,7 @@ int main(int argc, char* args[]) {
 		printf("Error to open file %s\n", args[1]);
 		return 1;
 	}
-
+	StartCounter();
 	//printf("%X:%X\n", fgetc(fp), fgetc(fp));
 	chack_marker(fp, 0xD8); // CHECKING EXISTENCE OF START MARKER
 
@@ -82,6 +118,7 @@ int main(int argc, char* args[]) {
 		}
 		if (!is_found) {
 			printf("UNKNOWN MARKER! Marker 0x%02X not be found\n", current_marker);
+			printf("%f\n", GetCounter());
 			return 1;
 		}
 	}
@@ -150,26 +187,6 @@ int sof0_marker() {
 
 int huffman_marker() {
 
-
-	//printf("Length: %d\nClass: %s coefficients\nTable id: %d\nCount of Huffman codes: %d\n", marker_length, class == 0 ? "DC" : "AC", table_id, codes_length);
-
-	//huffman_code_t codes[HUFFMAN_CODE_LENGTH];
-
-	//for (int i = 0; i < codes_length; i++) 
-	//	codes[i] = (huffman_code_t){ .length = i + 1, .count = fgetc(fp) };
-	//
-	//fseek(fp, HUFFMAN_CODE_LENGTH - codes_length, SEEK_CUR);
-	//avl_tree_t* tree = create_element();
-
-	//printf("CODES(%d):\n", codes_length);
-	//for (int i = 0; i < codes_length; i++) {
-	//	codes[i].value = fgetc(fp);
-	//	add_value(tree, codes[i]);
-	//	printf("Length: %d\nCount: %d\nValue: %d\n---------\n", codes[i].length, codes[i].count, codes[i].value);
-	//}
-
-	//print2D(tree, 0);
-
 	uint16_t marker_length = get_next_2_bytes(fp);
 	uint8_t temp_for_1_byte = fgetc(fp);
 	uint8_t class = get_half_of_byte(temp_for_1_byte, First);
@@ -189,10 +206,13 @@ int huffman_marker() {
 
 	fseek(fp, HUFFMAN_CODE_LENGTH - codes_length, SEEK_CUR);
 
+	avl_tree_t* tree = create_element();
+
 	for (i = 0; i < codes_length; i++) {
 		for (int j = 0; j < codes[i].count; j++) {
 			codes[i].value = fgetc(fp);
 			codes[i].code = code;
+			add_value(tree, codes[i]);
 			print_huffman(codes[i]);
 			code++;
 		}

@@ -15,32 +15,31 @@ typedef struct AvlTree {
 	struct AvlTree* right;
 } avl_tree_t;
 
-
-void print2D(avl_tree_t* root, int space)
-{
-	// Base case 
-	if (root == NULL)
-		return;
-
-	// Increase distance between levels 
-	space += COUNT;
-
-	// Process right child first 
-	print2D(root->right, space);
-
-	// Print current node after space 
-	// count 
-	printf("\n");
-	for (int i = COUNT; i < space; i++)
-		printf(" ");
-	if (root->huffman.value == 205)
-		printf("*\n");
-	else
-		printf("%x\n", root->huffman.value);
-
-	// Process left child 
-	print2D(root->left, space);
-}
+//void print2D(avl_tree_t* root, int space)
+//{
+//	// Base case 
+//	if (root == NULL)
+//		return;
+//
+//	// Increase distance between levels 
+//	space += COUNT;
+//
+//	// Process right child first 
+//	print2D(root->right, space);
+//
+//	// Print current node after space 
+//	// count 
+//	printf("\n");
+//	for (int i = COUNT; i < space; i++)
+//		printf(" ");
+//	if (root->huffman.value == 205)
+//		printf("*\n");
+//	else
+//		printf("%x\n", root->huffman.value);
+//
+//	// Process left child 
+//	print2D(root->left, space);
+//}
 
 avl_tree_t* create_element() {
 	avl_tree_t* element = malloc(sizeof(avl_tree_t));

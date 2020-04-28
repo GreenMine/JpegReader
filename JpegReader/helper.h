@@ -1,5 +1,4 @@
 #pragma once
-#include <math.h>
 
 void print_table(uint8_t input_array[], size_t length) {
 	for (int i = 0; i < length; i++) {

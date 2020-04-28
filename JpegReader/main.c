@@ -4,9 +4,10 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include <windows.h>
+#include <math.h>
 #include "decoder.h"
-#include "helper.h"
 #include "huffman.h"
+#include "helper.h"
 #include "type.h"
 #include "bitstream.h"
 
@@ -24,59 +25,58 @@ int dqt_marker();
 int sof0_marker();
 int huffman_marker();
 int app_marker();
-
-short get_next_2_bytes(FILE* file);
+int data_marker();
 
 void chack_marker(FILE* file, int second);
 
 FILE* fp;
 
-double PCFreq;
+//double PCFreq;
+//
+//LONGLONG CounterStart;
 
-LONGLONG CounterStart;
+//void StartCounter()
+//{
+//	LARGE_INTEGER li;
+//	if (!QueryPerformanceFrequency(&li))
+//		printf("Error\n");
+//
+//	PCFreq = ((double)li.QuadPart) / 1000.0;
+//
+//	QueryPerformanceCounter(&li);
+//	CounterStart = li.QuadPart;
+//}
+//double GetCounter()
+//{
+//	LARGE_INTEGER li;
+//	QueryPerformanceCounter(&li);
+//	return ((double)(li.QuadPart - CounterStart)) / PCFreq;
+//}
 
-void StartCounter()
-{
-	LARGE_INTEGER li;
-	if (!QueryPerformanceFrequency(&li))
-		printf("Error\n");
-
-	PCFreq = ((double)li.QuadPart) / 1000.0;
-
-	QueryPerformanceCounter(&li);
-	CounterStart = li.QuadPart;
-}
-double GetCounter()
-{
-	LARGE_INTEGER li;
-	QueryPerformanceCounter(&li);
-	return ((double)(li.QuadPart - CounterStart)) / PCFreq;
-}
-
-int main2(int argc, char* args[]) {
-
-
-	avl_tree_t* tree = create_element();
-
-	add_value(tree, (huffman_code_t){ 1, 1, 0, 03 });
-	putchar('\n');
-	add_value(tree, (huffman_code_t){ 2, 1, 2, 02 });
-
-	print2D(tree, 0);
-
-	if ((fp = fopen(args[1], "rb")) == NULL) {
-		printf("Error to open file %s\n", args[1]);
-		return 1;
-	}
-
-	bitstream_t* stream = bitstream_initialize(fp);
-
-	for (int i = 0; i < 256; i++) {
-		printf("%d", get_next_bit(stream));
-	}
-
-	return 0;
-}
+//int main2(int argc, char* args[]) {
+//
+//
+//	avl_tree_t* tree = create_element();
+//
+//	add_value(tree, (huffman_code_t){ 1, 1, 0, 03 });
+//	putchar('\n');
+//	add_value(tree, (huffman_code_t){ 2, 1, 2, 02 });
+//
+//	print2D(tree, 0);
+//
+//	if ((fp = fopen(args[1], "rb")) == NULL) {
+//		printf("Error to open file %s\n", args[1]);
+//		return 1;
+//	}
+//
+//	bitstream_t* stream = bitstream_initialize(fp);
+//
+//	for (int i = 0; i < 256; i++) {
+//		printf("%d", get_next_bit(stream));
+//	}
+//
+//	return 0;
+//}
 
 int main(int argc, char* args[]) {
 	if (argc == 1)
@@ -87,18 +87,18 @@ int main(int argc, char* args[]) {
 		const char* name;
 		int(*f)();
 	} markers[MARKER_COUNT] = {
-		{new_value(0xFE), "COMMENT", comment_marker}, {new_value(0xDB), "DQT", dqt_marker}, {new_value(0xC0), "SOF0", sof0_marker}, {new_value(0xC4), "TABLE OF HUFFMAN", huffman_marker}, {new_two_value(0xE0, 0xEF), "APP", app_marker}
+		{new_value(0xFE), "COMMENT", comment_marker}, {new_value(0xDB), "DQT", dqt_marker}, {new_value(0xC0), "SOF0", sof0_marker}, {new_value(0xC4), "DHT", huffman_marker}, {new_two_value(0xE0, 0xEF), "APP", app_marker}, {new_value(0xDA), "DATA", data_marker}
 	};
 
 	if ((fp = fopen(args[1], "rb")) == NULL) {
 		printf("Error to open file %s\n", args[1]);
 		return 1;
 	}
-	StartCounter();
+	//StartCounter();
 	//printf("%X:%X\n", fgetc(fp), fgetc(fp));
 	chack_marker(fp, 0xD8); // CHECKING EXISTENCE OF START MARKER
 
-	uint8_t current_byte;
+	int16_t current_byte;
 
 	while ((current_byte = fgetc(fp)) != EOF) {
 		if (current_byte != 0xFF) {
@@ -106,7 +106,7 @@ int main(int argc, char* args[]) {
 			return 1;
 		}
 	
-		uint16_t current_marker = fgetc(fp);
+		uint8_t current_marker = fgetc(fp);
 		bool is_found = false;
 		
 		for (int i = 0; i < MARKER_COUNT; i++) {
@@ -118,7 +118,7 @@ int main(int argc, char* args[]) {
 		}
 		if (!is_found) {
 			printf("UNKNOWN MARKER! Marker 0x%02X not be found\n", current_marker);
-			printf("%f\n", GetCounter());
+			//printf("%f\n", GetCounter());
 			return 1;
 		}
 	}
@@ -232,5 +232,31 @@ int app_marker() {
 		if (!(i % 16)) putchar('\n');
 	}
 	putchar('\n');
+	return 0;
+}
+
+int data_marker() {
+
+	uint16_t marker_length = get_next_2_bytes(fp);
+	uint8_t count_channels = fgetc(fp);
+
+	for (uint8_t i = 0; i < count_channels; i++) {
+		printf("Channel id: %d\n", fgetc(fp));
+		uint8_t temp_byte = fgetc(fp);
+		printf("Id Huffman for DC coefficients: %d\nId Huffman for AC coefficients: %d\n", get_half_of_byte(temp_byte, First), get_half_of_byte(temp_byte, Second));
+	}
+
+	printf("Bitstream: ");
+
+	bitstream_t *bitstream = bitstream_initialize(fp);
+
+	fseek(fp, 3, SEEK_CUR); // progressive mode sucks
+	
+	int8_t current_bit;
+
+	while ((current_bit = get_next_bit(bitstream)) != EOF)
+		putchar(current_bit ? '1' : '0');
+	putchar('\n');
+
 	return 0;
 }
